@@ -3,12 +3,14 @@ import './App.css'
 import { storageService } from '../services/storageService';
 import { GAME_CONFIG } from '../constants/theme';
 import { gameService } from '../services/gameService';
+import { useResponsive } from '../hooks/userResponsive';
 import GameHeader from '../components/gameHeader';
 import GameArena from '../components/gameArena';
 import CraftingPanel from '../components/craftingPanel';
 import FeedbackOverlay from '../components/feedbackOverlay';
 
 function App() {
+  const {layout} = useResponsive();
 
   const [gameData, setGameData] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -150,7 +152,9 @@ function App() {
 
   return (
     <div style={styles.app} className='no-select'>
-      <GameHeader timeLeft={timeLeft} score={score} bestScore={bestScore} />
+      <div style={{height: `${layout.headerHeight}px`, flexShrink: 0}}>
+        <GameHeader timeLeft={timeLeft} score={score} bestScore={bestScore} />
+      </div>
 
       <GameArena
         centralItem={gameData.targetItem}
@@ -160,12 +164,14 @@ function App() {
         feedbackState={feedback}
       />
 
-      <CraftingPanel
-        selectedItems={selectedItems}
-        maxSlots={requiredSlots}
-        onSubmit={handleSubmit}
-        canSubmit={selectedItems.length === requiredSlots && !feedback}
-      />
+      <div style={{ height: `${layout.panelHeight}px`, position: 'relative', flexShrink: 0 }}>
+        <CraftingPanel
+          selectedItems={selectedItems}
+          maxSlots={requiredSlots}
+          onSubmit={handleSubmit}
+          canSubmit={selectedItems.length === requiredSlots && !feedback}
+        />
+      </div>
 
       <FeedbackOverlay feedback={feedback} onClose={handleCloseFeedback} />
     </div>
@@ -175,7 +181,9 @@ function App() {
 const styles = {
   app: {
     height: '100vh',
-    position: 'relative',
+    width: '100vw',
+    display: 'flex',
+    flexDirection: 'column',
     overflow: 'hidden',
     background: 'linear-gradient(135deg, #0A1428 0%, #1A2332 100%)',
   },
@@ -188,7 +196,7 @@ const styles = {
     background: '#0A1428',
   },
   loadingText: {
-    fontSize: '24px',
+    fontSize: '22px',
     color: '#F0E6D2',
     fontWeight: 'bold',
   },
@@ -203,7 +211,7 @@ const styles = {
     gap: '20px',
   },
   errorText: {
-    fontSize: '18px',
+    fontSize: '16px',
     color: '#FF4444',
     textAlign: 'center',
     maxWidth: '80%',
@@ -220,4 +228,4 @@ const styles = {
   },
 };
 
-export default App
+export default App;

@@ -1,42 +1,50 @@
+/* ─── RESET COMPLETO DE #root ────────────────────────────────────────────────
+   El juego necesita ocupar exactamente 100vw × 100vh sin márgenes ni padding.
+   El max-width:1280px original desplazaba el contenido en pantallas > 1280px.
+   index.css ya aplica width/height/overflow — aquí solo limpiamos conflictos. */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  text-align: initial;
 }
 
+/* Animaciones de utilidad (usadas por index.css via className) */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+@keyframes shake {
+  0%, 100%                        { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90%         { transform: translateX(-10px); }
+  20%, 40%, 60%, 80%              { transform: translateX(10px); }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(200, 155, 60, 0.6); }
+  50%       { box-shadow: 0 0 40px rgba(200, 155, 60, 0.9); }
+}
+
+.pulse  { animation: pulse  1s   ease-in-out infinite; }
+.shake  { animation: shake  0.5s ease-in-out; }
+.glow   { animation: glow   2s   ease-in-out infinite; }
+
+/* Logo (heredado del template Vite — no usado en el juego) */
 .logo {
   height: 6em;
   padding: 1.5em;
   will-change: filter;
   transition: filter 300ms;
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.logo:hover        { filter: drop-shadow(0 0 2em #646cffaa); }
+.logo.react:hover  { filter: drop-shadow(0 0 2em #61dafbaa); }
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo { animation: logo-spin infinite 20s linear; }
 }
 
 @keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
