@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from 'react'
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react'
 import './App.css'
 import { storageService } from '../services/storageService';
 import { GAME_CONFIG } from '../constants/theme';
@@ -8,29 +8,39 @@ import GameHeader from '../components/gameHeader';
 import GameArena from '../components/gameArena';
 import CraftingPanel from '../components/craftingPanel';
 import FeedbackOverlay from '../components/feedbackOverlay';
+import AdOverlay from '../components/adOverlay';
+
+// Mostrar anuncio cada N rondas
+const AD_EVERY_N_ROUNDS = 3;
 
 function App() {
-  const {layout} = useResponsive();
+  const { layout } = useResponsive();
 
-  const [gameData, setGameData] = useState(null);
+  const [gameData, setGameData]       = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
-  const [score, setScore] = useState(storageService.getScore());
-  const [bestScore, setBestScore] = useState(storageService.getBestScore());
-  const [timeLeft, setTimeLeft] = useState(GAME_CONFIG.timePerQuestion);
-  const [feedback, setFeedback] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [score, setScore]             = useState(storageService.getScore());
+  const [bestScore, setBestScore]     = useState(storageService.getBestScore());
+  const [timeLeft, setTimeLeft]       = useState(GAME_CONFIG.timePerQuestion);
+  const [feedback, setFeedback]       = useState(null);
+  const [isLoading, setIsLoading]     = useState(true);
+  const [error, setError]             = useState(null);
+  const [showAd, setShowAd]           = useState(false);   // ← nuevo
+
+  // Contador de rondas jugadas (no persiste entre sesiones, no necesario)
+  const roundsPlayedRef = useRef(0);
 
   const requiredSlots = useMemo(() => {
     return gameData?.correctComponents?.length || 2;
   }, [gameData?.correctComponents?.length]);
 
+  // ── Cargar nueva pregunta ───────────────────────────────────────────────
   const loadNewQuestion = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       setSelectedItems([]);
       setFeedback(null);
+      setShowAd(false);
       setTimeLeft(GAME_CONFIG.timePerQuestion);
 
       const data = await gameService.getRandomItem();
@@ -47,10 +57,33 @@ function App() {
     loadNewQuestion();
   }, [loadNewQuestion]);
 
-  // TIMER: Se pausa automaticamente cuando los slots estan completos
+  // ── Decidir si mostrar anuncio antes de la siguiente ronda ─────────────
+  /**
+   * Llama a esto SIEMPRE que el jugador deba avanzar a la siguiente ronda.
+   * Si toca ronda de anuncio → muestra AdOverlay.
+   * Si no → carga directamente la siguiente pregunta.
+   */
+  const goToNextRound = useCallback(() => {
+    roundsPlayedRef.current += 1;
+
+    if (roundsPlayedRef.current % AD_EVERY_N_ROUNDS === 0) {
+      setFeedback(null);   // cierra FeedbackOverlay primero
+      setShowAd(true);     // abre AdOverlay
+    } else {
+      loadNewQuestion();
+    }
+  }, [loadNewQuestion]);
+
+  // Callback que dispara AdOverlay cuando termina el anuncio
+  const handleAdClose = useCallback(() => {
+    setShowAd(false);
+    loadNewQuestion();
+  }, [loadNewQuestion]);
+
+  // ── Timer ───────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!gameData || feedback || timeLeft <= 0) return;
-    if (selectedItems.length >= requiredSlots) return; // PAUSA cuando slots llenos
+    if (selectedItems.length >= requiredSlots) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -74,6 +107,7 @@ function App() {
     storageService.resetStreak();
   }, [gameData]);
 
+  // ── Clicks sobre items ──────────────────────────────────────────────────
   const handleItemClick = useCallback((item) => {
     if (feedback) return;
 
@@ -81,19 +115,16 @@ function App() {
       const isInSlots = prev.some((s) => s.id === item.id);
 
       if (prev.length < requiredSlots) {
-        // Hay espacio: siempre agregar (permite duplicados)
         return [...prev, item];
       } else if (isInSlots) {
-        // Slots llenos y el item ya está: eliminar la última ocurrencia
         const lastIdx = prev.map((s) => s.id).lastIndexOf(item.id);
         return prev.filter((_, i) => i !== lastIdx);
       }
-      // Slots llenos y el item no está: no hacer nada
       return prev;
     });
   }, [feedback, requiredSlots]);
 
-  // SUBMIT: Sin bloqueo por feedback, solo verifica que haya items
+  // ── Validar respuesta ───────────────────────────────────────────────────
   const handleSubmit = useCallback(async () => {
     if (selectedItems.length !== requiredSlots) return;
 
@@ -106,11 +137,12 @@ function App() {
         setScore(newScore);
         storageService.setScore(newScore);
         storageService.incrementStreak();
-
         if (newScore > bestScore) setBestScore(newScore);
 
         setFeedback({ isCorrect: true, points: GAME_CONFIG.pointsPerCorrect });
-        setTimeout(() => loadNewQuestion(), 2000);
+
+        // Esperar que el jugador vea el feedback correcto 1.8s, luego avanzar
+        setTimeout(() => goToNextRound(), 1800);
       } else {
         const newScore = Math.max(0, score - GAME_CONFIG.pointsPerIncorrect);
         setScore(newScore);
@@ -125,12 +157,14 @@ function App() {
     } catch (err) {
       console.error('Error validating answer:', err);
     }
-  }, [selectedItems, gameData, score, bestScore, loadNewQuestion, requiredSlots]);
+  }, [selectedItems, gameData, score, bestScore, goToNextRound, requiredSlots]);
 
+  // Cerrar feedback incorrecto/timeout → avanzar ronda (con posible anuncio)
   const handleCloseFeedback = useCallback(() => {
-    loadNewQuestion();
-  }, [loadNewQuestion]);
+    goToNextRound();
+  }, [goToNextRound]);
 
+  // ── Render ───────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div style={styles.loadingContainer}>
@@ -152,7 +186,7 @@ function App() {
 
   return (
     <div style={styles.app} className='no-select'>
-      <div style={{height: `${layout.headerHeight}px`, flexShrink: 0}}>
+      <div style={{ height: `${layout.headerHeight}px`, flexShrink: 0 }}>
         <GameHeader timeLeft={timeLeft} score={score} bestScore={bestScore} />
       </div>
 
@@ -173,7 +207,11 @@ function App() {
         />
       </div>
 
+      {/* Overlay de feedback de respuesta */}
       <FeedbackOverlay feedback={feedback} onClose={handleCloseFeedback} />
+
+      {/* Overlay de anuncio entre rondas */}
+      <AdOverlay visible={showAd} onClose={handleAdClose} />
     </div>
   );
 }
