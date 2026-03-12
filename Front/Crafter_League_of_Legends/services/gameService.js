@@ -10,8 +10,6 @@ const api = axios.create({
 });
 
 function adaptBackendResponse(backendData) {
-    console.log('🔧 ADAPTANDO respuesta del backend...');
-    console.log('📦 Backend data completa:', backendData);
     
     // Transformar targetItem
     const targetItem = {
@@ -45,10 +43,6 @@ function adaptBackendResponse(backendData) {
         difficulty: backendData.difficulty,
     };
     
-    console.log('Datos adaptados:', adapted);
-    console.log('arget Item:', adapted.targetItem);
-    console.log('Options IDs:', adapted.options.map(i => i.id));
-    
     return adapted;
 }
 
@@ -59,7 +53,6 @@ export const gameService = {
             const response = await api.get(API_CONFIG.endpoints.question, {
                 params: { difficulty: 'HARD' }
             });
-            console.log('Respuesta RAW del backend:', response.data);
 
             const adaptedData = adaptBackendResponse(response.data);
             
@@ -75,7 +68,6 @@ export const gameService = {
             const response = await api.post(API_CONFIG.endpoints.validate, {
                 targetItemId, selectedComponentIds
             });
-            console.log('Respuesta de validación:', response.data);
 
             // Adaptar correctComponents si viene del backend
             const correctComponents = response.data.correctComponents?.map(item => ({
@@ -89,8 +81,6 @@ export const gameService = {
                 correctComponents: correctComponents,
                 message: response.data.message || ''
             };
-
-            console.log('✅ Resultado adaptado:', result);
 
             return result;
 
