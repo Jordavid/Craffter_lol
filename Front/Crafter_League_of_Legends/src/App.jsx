@@ -110,19 +110,15 @@ function App() {
   // ── Clicks sobre items ──────────────────────────────────────────────────
   const handleItemClick = useCallback((item) => {
     if (feedback) return;
-
-    setSelectedItems((prev) => {
-      const isInSlots = prev.some((s) => s.id === item.id);
-
-      if (prev.length < requiredSlots) {
-        return [...prev, item];
-      } else if (isInSlots) {
-        const lastIdx = prev.map((s) => s.id).lastIndexOf(item.id);
-        return prev.filter((_, i) => i !== lastIdx);
-      }
-      return prev;
-    });
+    setSelectedItems((prev) =>
+      prev.length < requiredSlots ? [...prev, item] : prev
+    );
   }, [feedback, requiredSlots]);
+
+  const handleSlotClick = useCallback((index) => {
+    if (feedback) return;
+    setSelectedItems((prev) => prev.filter((_, i) => i !== index));
+  }, [feedback]);
 
   // ── Validar respuesta ───────────────────────────────────────────────────
   const handleSubmit = useCallback(async () => {
@@ -203,6 +199,7 @@ function App() {
           selectedItems={selectedItems}
           maxSlots={requiredSlots}
           onSubmit={handleSubmit}
+          onSlotClick={handleSlotClick}
           canSubmit={selectedItems.length === requiredSlots && !feedback}
         />
       </div>

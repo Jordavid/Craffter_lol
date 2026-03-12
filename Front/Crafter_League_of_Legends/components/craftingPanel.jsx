@@ -5,7 +5,7 @@ import { useResponsive } from '../hooks/userResponsive';
 const PLACEHOLDER =
   'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjMUEyMzMyIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMzIiIGZpbGw9IiNGMEU2RDIiPj88L3RleHQ+PC9zdmc+';
 
-export default function CraftingPanel({ selectedItems, maxSlots, onSubmit, canSubmit }) {
+export default function CraftingPanel({ selectedItems, maxSlots, onSubmit, onSlotClick, canSubmit }) {
   const { layout } = useResponsive();
   const { slotSize, panelHeight } = layout;
   const filled = selectedItems.length === maxSlots;
@@ -34,8 +34,9 @@ export default function CraftingPanel({ selectedItems, maxSlots, onSubmit, canSu
               <AnimatePresence mode="wait">
                 {item ? (
                   <motion.div
-                    key={item.id}
-                    style={styles.filled}
+                    key={item.id + '-' + i}
+                    style={{ ...styles.filled, cursor: 'pointer' }}
+                    onClick={() => onSlotClick(i)}
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
                     exit={{ scale: 0, rotate: 180 }}
