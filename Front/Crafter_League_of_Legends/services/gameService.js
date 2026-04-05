@@ -3,7 +3,7 @@ import { API_CONFIG } from "../constants/theme";
 
 const api = axios.create({
     baseURL: API_CONFIG.baseURL,
-    timeout: 10000,
+    timeout: 30000,
     headers: {
         'Content-Type': 'application/json',
     },
